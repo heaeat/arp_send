@@ -3,41 +3,28 @@
 #include <stdlib.h> /* Standard Library */
 #include <errno.h>  /* Error number and related */
 
-#define ENUMS
 #include <sys/socket.h>
 #include <net/route.h>
-#include <net/if.h>
-#include <features.h> /* for the glibc version number */
-#if __GLIBC__ >= 2 && __GLIBC_MINOR >= 1
-#include <netpacket/packet.h>
 #include <net/ethernet.h> /* the L2 protocols */
-#else
-#include <asm/types.h>
-#include <linux/if_packet.h>
-#include <linux/if_ether.h> /* The L2 protocols */
-#endif
-#include <netinet/in.h>
 #include <arpa/inet.h>
-#include <sys/un.h>
 #include <sys/ioctl.h>
-#include <netdb.h>
 
 #include <pcap.h>
 
 u_int8_t my_mac[6];
 u_int32_t vic_ip, gate_ip;
 
-typedef struct arp_header{
-	u_int16_t hw_type;
-	u_int16_t protocol;
-	u_int8_t mac_len;
-	u_int8_t ip_len;
-	u_int16_t op_code;
-	u_int8_t sender_mac[6];
-	u_int32_t sender_ip;
-	u_int8_t target_mac[6];
-	u_int32_t target_ip;
-}arp_h;
+typedef struct _arp_header{
+	u_int16_t ar_hrd;
+	u_int16_t ar_pro;
+	u_int8_t ar_hln;
+	u_int8_t ar_pln;
+	u_int16_t ar_op;
+	u_int8_t ar_src_mac[6];
+	u_int32_t ar_src_ip;
+	u_int8_t ar_dst_mac[6];
+	u_int32_t ar_dst_ip;
+}arp_header;
 
 int main(int argc, char *argv[])
 {
