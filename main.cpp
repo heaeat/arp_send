@@ -40,8 +40,6 @@ int main(int argc, char *argv[])
 		null_mac,
 		vic_ip);
 
-
-
 	char errbuf[PCAP_ERRBUF_SIZE];
 	pcap_t *handle = pcap_open_live(dev, BUFSIZ, 1, 1000, errbuf);
 
@@ -279,23 +277,22 @@ void send_packet(pcap_t *handle, ethernet_hdr *ethernet_h, arp_hdr *arp_h, int m
 	}
 
 	packet = (u_char *)malloc(sizeof(u_char) * packet_size);
-	*packet = *(u_char *)ethernet_h;
-	*(packet + 14) = *(u_char *)arp_h;
-
-	print_packet(ethernet_h,arp_h);
+//	*packet = *(u_char *)ethernet_h;
 	
-//	*(packet + 14) = *(u_char *)arp_h;
-
-	printf("\n\n\n%02x", (u_char *)ethernet_h);
-	printf("\n\n\n%p", packet);
-
+	printf("\n\n%d\n",sizeof(ethernet_hdr) );
+	
+	memcpy(packet, ethernet_h->ether_dhost, MACLEN);
+	memcpy(packet + MACLEN, ethernet_h->ether_shost, MACLEN);
+	memcpy(packet + MACLEN * 2, &ethernet_h->ether_type,2);
+	memcpy(packet + MACLEN * 2 + 2, arp_h, 8);
+	memcpy(packet + 22, arp_h->ar_src_mac, MACLEN);
+	memcpy(packet + 22 + MACLEN, &arp_h->ar_src_ip, 4);
+	memcpy(packet + 32 , arp_h->ar_dst_mac, MACLEN);
+	memcpy(packet + 38, &arp_h->ar_dst_ip, 4);
 
 	if (pcap_sendpacket(handle, packet, packet_size) != 0)
 	{
 		fprintf(stderr, "\nError sending the packet: \n", pcap_geterr(handle));
 	}
-	printf("\n===================\n");
-	for(int i = 0 ; i < packet_size; i++){
-		printf("%02x ", packet[i]);
-	}
+
 }
