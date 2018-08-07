@@ -60,12 +60,18 @@ typedef struct _arp_header
 int get_local_mac(const char *dev, unsigned char *mac);
 u_int32_t get_local_ip(const char *dev);
 void ipchar_to_uint(const char *char_ip,u_int32_t *int_ip);
-arp_hdr *make_arp_header(u_int16_t ar_hrd, u_int16_t ar_pro, u_int8_t ar_hln, u_int8_t ar_pln, u_int16_t ar_op, u_int8_t *ar_src_mac, u_int32_t ar_src_ip, u_int8_t *ar_dst_mac, u_int32_t ar_dst_ip);
+
 ethernet_hdr *make_ethernet_header(u_int8_t *ether_dhost, u_int8_t *ether_shost, u_int16_t ether_type);
-int receive_reply(pcap_t *handle, u_int32_t ar_src_ip, u_int8_t *ether_shost);
-void print_packet(ethernet_hdr *ethernet_h, arp_hdr *arp_h);
-void send_packet(pcap_t *handle, ethernet_hdr *ethernet_h, arp_hdr *arp_h, int mode);
-u_int8_t* reverse_array(u_int8_t *uintarr);
+arp_hdr *make_arp_header(u_int16_t ar_hrd, u_int16_t ar_pro, u_int8_t ar_hln, u_int8_t ar_pln, u_int16_t ar_op, u_int8_t *ar_src_mac, u_int32_t ar_src_ip, u_int8_t *ar_dst_mac, u_int32_t ar_dst_ip);
 void hton_ethernet(ethernet_hdr *ethernet_h);
 void hton_arp(arp_hdr *arp_h);
+u_int8_t* reverse_array(u_int8_t *uintarr);
+
+
+int receive_reply(pcap_t *handle, u_int32_t ar_src_ip, u_int8_t *ether_shost);
 int receive_request(pcap_t *handle, u_int32_t ar_src_ip);
+void send_packet(pcap_t *handle, ethernet_hdr *ethernet_h, arp_hdr *arp_h, int mode);
+
+void print_packet(ethernet_hdr *ethernet_h, arp_hdr *arp_h);
+
+
