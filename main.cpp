@@ -26,8 +26,8 @@ int main(int argc, char *argv[])
 
 	/* make and send arp request packet */
 	ethernet_hdr *ethernet_h = make_ethernet_header(
-		local_mac,
 		null_mac,
+		local_mac,
 		ARP);
 	arp_hdr *arp_h = make_arp_header(
 		ETHERNET,
@@ -128,17 +128,18 @@ void ipchar_to_uint(const char *char_ip, u_int32_t *int_ip)
 arp_hdr *make_arp_header(u_int16_t ar_hrd, u_int16_t ar_pro, u_int8_t ar_hln, u_int8_t ar_pln, u_int16_t ar_op, u_int8_t *ar_src_mac, u_int32_t ar_src_ip, u_int8_t *ar_dst_mac, u_int32_t ar_dst_ip)
 {
 	arp_hdr *arp_h = (arp_hdr *)malloc(sizeof(arp_hdr));
-	arp_h->ar_src_mac = (u_int8_t *)malloc(sizeof(u_int8_t) * MACLEN);
-	arp_h->ar_dst_mac = (u_int8_t *)malloc(sizeof(u_int8_t) * MACLEN);
 
 	arp_h->ar_hrd = ar_hrd;
 	arp_h->ar_pro = ar_pro;
 	arp_h->ar_hln = ar_hln;
 	arp_h->ar_pln = ar_pln;
 	arp_h->ar_op = ar_op;
-	arp_h->ar_src_mac = ar_src_mac;
+	for(int i = 0 ; i < MACLEN; i ++){
+		arp_h->ar_src_mac[i] = *(ar_src_mac + i);
+		arp_h->ar_dst_mac[i] = *(ar_dst_mac + i);
+
+	}
 	arp_h->ar_src_ip = ar_src_ip;
-	arp_h->ar_dst_mac = ar_dst_mac;
 	arp_h->ar_dst_ip = ar_dst_ip;
 	return arp_h;
 }
@@ -146,18 +147,21 @@ arp_hdr *make_arp_header(u_int16_t ar_hrd, u_int16_t ar_pro, u_int8_t ar_hln, u_
 ethernet_hdr *make_ethernet_header(u_int8_t *ether_dhost, u_int8_t *ether_shost, u_int16_t ether_type)
 {
 	ethernet_hdr *ethernet_h = (ethernet_hdr *)(malloc(sizeof(ethernet_h)));
-	ethernet_h->ether_dhost = (u_int8_t *)malloc(sizeof(u_int8_t) * MACLEN);
-	ethernet_h->ether_shost = (u_int8_t *)malloc(sizeof(u_int8_t) * MACLEN);
+	for(int i = 0 ; i < MACLEN; i ++){
+		ethernet_h->ether_dhost[i] = *(ether_dhost + i);
+		ethernet_h->ether_shost[i] = *(ether_shost + i);
 
-	ethernet_h->ether_dhost = ether_dhost;
-	ethernet_h->ether_shost = ether_shost;
+	}
 	ethernet_h->ether_type = ether_type;
 	return ethernet_h;
 }
 
 void hton_ethernet(ethernet_hdr *ethernet_h){
-	ethernet_h->ether_dhost = reverse_array(ethernet_h->ether_dhost);
-	ethernet_h->ether_shost = reverse_array(ethernet_h->ether_shost);
+
+	for(int i = 0 ; i < MACLEN; i ++){
+		ethernet_h->ether_dhost[i] = *(reverse_array(ethernet_h->ether_dhost) + i);
+		ethernet_h->ether_shost[i] = *(reverse_array(ethernet_h->ether_shost) + i);
+	}
 	ethernet_h->ether_type = htons(ethernet_h->ether_type);
 }
 
@@ -168,9 +172,11 @@ void hton_arp(arp_hdr *arp_h){
 	arp_h->ar_hln = arp_h->ar_hln;
 	arp_h->ar_pln = arp_h->ar_pln;
 	arp_h->ar_op = htons(arp_h->ar_op);
-	arp_h->ar_src_mac = reverse_array(arp_h->ar_src_mac);
+	for(int i = 0 ; i < MACLEN; i ++){
+		arp_h->ar_src_mac[i] = *(reverse_array(arp_h->ar_src_mac) + i);
+		arp_h->ar_dst_mac[i] = *(reverse_array(arp_h->ar_dst_mac) + i);
+	}
 	arp_h->ar_src_ip = htonl(arp_h->ar_src_ip);
-	arp_h->ar_dst_mac = reverse_array(arp_h->ar_dst_mac);
 	arp_h->ar_dst_ip = htonl(arp_h->ar_dst_ip);
 }
 
@@ -237,13 +243,11 @@ void print_packet(ethernet_hdr *ethernet_h, arp_hdr *arp_h)
 
 	/* print arp header */
 	printf("\n[ARP HEADER]\n");
-	printf("Destination MAC : ");
-	for (int i = 0; i < MACLEN; i++)
-	{
-		printf("%02x ", *(arp_h->ar_dst_mac + i));
-	}
-	printf("\nDestination IP : ");
-	printf("%0x", arp_h->ar_dst_ip);
+	printf("Hardware type  : %04x\n", arp_h->ar_hrd);
+	printf("Protocol  : %04x\n", arp_h->ar_pro);
+	printf("ar hln  : %02x\n", arp_h->ar_hln);
+	printf("ar pln  : %02x\n", arp_h->ar_pln);
+	printf("OP code  : %04x\n", arp_h->ar_op);
 
 	printf("\nSource MAC : ");
 	for (int i = 0; i < MACLEN; i++)
@@ -254,8 +258,15 @@ void print_packet(ethernet_hdr *ethernet_h, arp_hdr *arp_h)
 	printf("\nSource IP : ");
 	printf("%0x", arp_h->ar_src_ip);
 
-	printf("\nARP OP : ");
-	printf("%04x", arp_h->ar_op);
+	printf("Destination MAC : ");
+	for (int i = 0; i < MACLEN; i++)
+	{
+		printf("%02x ", *(arp_h->ar_dst_mac + i));
+	}
+	printf("\nDestination IP : ");
+	printf("%0x", arp_h->ar_dst_ip);
+
+	
 }
 
 void send_packet(pcap_t *handle, ethernet_hdr *ethernet_h, arp_hdr *arp_h, int mode)
@@ -279,8 +290,8 @@ void send_packet(pcap_t *handle, ethernet_hdr *ethernet_h, arp_hdr *arp_h, int m
 	packet = (u_char *)malloc(sizeof(u_char) * packet_size);
 //	*packet = *(u_char *)ethernet_h;
 	
-	printf("\n\n%d\n",sizeof(ethernet_hdr) );
-	
+	printf("\n\n%d , %d\n",sizeof(ethernet_hdr), sizeof(arp_hdr) );
+	/*
 	memcpy(packet, ethernet_h->ether_dhost, MACLEN);
 	memcpy(packet + MACLEN, ethernet_h->ether_shost, MACLEN);
 	memcpy(packet + MACLEN * 2, &ethernet_h->ether_type,2);
@@ -289,6 +300,9 @@ void send_packet(pcap_t *handle, ethernet_hdr *ethernet_h, arp_hdr *arp_h, int m
 	memcpy(packet + 22 + MACLEN, &arp_h->ar_src_ip, 4);
 	memcpy(packet + 32 , arp_h->ar_dst_mac, MACLEN);
 	memcpy(packet + 38, &arp_h->ar_dst_ip, 4);
+*/
+	memcpy(packet, ethernet_h, sizeof(ethernet_hdr));
+	memcpy(packet + sizeof(ethernet_hdr), arp_h, sizeof(arp_hdr));
 
 	if (pcap_sendpacket(handle, packet, packet_size) != 0)
 	{

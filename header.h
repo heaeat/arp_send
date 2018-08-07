@@ -38,8 +38,8 @@
 
 typedef struct _ethernet_header
 {
-	u_int8_t *ether_dhost;
-	u_int8_t *ether_shost;
+	u_int8_t ether_dhost[MACLEN];
+	u_int8_t ether_shost[MACLEN];
 	u_int16_t ether_type;       /* ARP : 0x0806, RARP : 0x0835 */
 } ethernet_hdr;
 
@@ -50,9 +50,9 @@ typedef struct _arp_header
 	u_int8_t ar_hln;
 	u_int8_t ar_pln;
 	u_int16_t ar_op;            /* Request : 0x01, Reply : 0x02, RARP request : 0x03, RARP Replay : 0x04 */
-	u_int8_t *ar_src_mac;
+	u_int8_t ar_src_mac[MACLEN];
 	u_int32_t ar_src_ip;
-	u_int8_t *ar_dst_mac;
+	u_int8_t ar_dst_mac[MACLEN];
 	u_int32_t ar_dst_ip;
 } arp_hdr;
 
