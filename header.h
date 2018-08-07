@@ -70,7 +70,7 @@ u_int8_t* reverse_array(u_int8_t *uintarr);
 
 int receive_reply(pcap_t *handle, u_int32_t ar_src_ip, u_int8_t *ether_shost);
 int receive_request(pcap_t *handle, u_int32_t ar_src_ip);
-void send_packet(pcap_t *handle, ethernet_hdr *ethernet_h, arp_hdr *arp_h, int mode);
+void send_packet(pcap_t *handle, ethernet_hdr *ethernet_h, arp_hdr *arp_h);
 
 void print_packet(ethernet_hdr *ethernet_h, arp_hdr *arp_h);
 
